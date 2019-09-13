@@ -51,3 +51,8 @@ conda activate py36
 conda install notebook ipykernel
 ipython kernel install --user
 
+
+https://ndres.me/post/best-jupyter-notebook-extensions/
+https://github.com/ipython-contrib/jupyter_contrib_nbextensions
+
+https://zzsza.github.io/development/2018/08/15/jupyter-notebook-in-jekyll/
