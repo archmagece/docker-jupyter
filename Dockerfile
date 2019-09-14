@@ -1,8 +1,14 @@
 ARG BASE_CONTAINER=jupyter/minimal-notebook
 FROM $BASE_CONTAINER
 
-ENV SCALA_VERSION=2.12.8
-# ENV SCALA_VERSION=2.11.12
+ARG SCALA_11_VERSION=2.11.12
+ARG SCALA_12_VERSION=2.12.8
+ARG SCALA_13_VERSION=2.13.0
+
+ENV SCALA_11_VERSION=$SCALA_11_VERSION
+ENV SCALA_12_VERSION=$SCALA_12_VERSION
+ENV SCALA_13_VERSION=$SCALA_13_VERSION
+
 ENV ALMOND_VERSION=0.6.0
 ENV JAVA_VERSION=12
 ENV RUBY_VERSION=2.6.4
@@ -14,22 +20,22 @@ USER root
 
 RUN sed -i 's@http://archive.ubuntu.com/@http://mirror.kakao.com/@g' /etc/apt/sources.list &&\
     sed -i 's@http://security.ubuntu.com/@http://mirror.kakao.com/@g' /etc/apt/sources.list &&\
-    apt-get update -qq && apt-get -y upgrade
-
-RUN apt-get -y install sudo tree vim build-essential git zip unzip curl fonts-dejavu &&\
-    apt-get clean &&\
+    apt-get update -qq && apt-get -y upgrade &&\
+    apt-get -y install sudo tree vim build-essential git zip unzip curl fonts-dejavu \
+    ffmpeg gfortran gcc unixodbc unixodbc-dev r-cran-rodbc &&\
     rm -rf /var/lib/apt/lists/*
+
 
 # ======================= start ===========================
 
 # ---------- SciPy
 
-USER root
+# USER root
 
-# ffmpeg for matplotlib anim
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
+# # ffmpeg for matplotlib anim
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends ffmpeg && \
+#     rm -rf /var/lib/apt/lists/*
 
 USER $NB_UID
 
@@ -112,13 +118,13 @@ ARG TEST_ONLY_BUILD
 
 USER root
 
-# R pre-requisites
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    fonts-dejavu \
-    gfortran \
-    gcc && \
-    rm -rf /var/lib/apt/lists/*
+# # R pre-requisites
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     fonts-dejavu \
+#     gfortran \
+#     gcc && \
+#     rm -rf /var/lib/apt/lists/*
 
 # Julia dependencies
 # install Julia packages in /opt/julia instead of $HOME
@@ -196,9 +202,9 @@ USER root
 ENV APACHE_SPARK_VERSION 2.4.4
 ENV HADOOP_VERSION 2.7
 
-RUN apt-get -y update && \
-    apt-get install --no-install-recommends -y openjdk-8-jre-headless ca-certificates-java && \
-    rm -rf /var/lib/apt/lists/*
+# RUN apt-get -y update && \
+#     apt-get install --no-install-recommends -y openjdk-8-jre-headless ca-certificates-java && \
+#     rm -rf /var/lib/apt/lists/*
 
 RUN cd /tmp && \
     wget -q http://mirrors.ukfast.co.uk/sites/ftp.apache.org/spark/spark-${APACHE_SPARK_VERSION}/spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
@@ -266,13 +272,13 @@ USER root
 ENV R_LIBS_USER $SPARK_HOME/R/lib
 RUN fix-permissions $R_LIBS_USER
 
-# R pre-requisites
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    fonts-dejavu \
-    gfortran \
-    gcc && \
-    rm -rf /var/lib/apt/lists/*
+# # R pre-requisites
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     fonts-dejavu \
+#     gfortran \
+#     gcc && \
+#     rm -rf /var/lib/apt/lists/*
 
 USER $NB_UID
 
@@ -309,16 +315,16 @@ RUN conda install --quiet --yes 'spylon-kernel=0.4*' && \
 
 USER root
 
-# R pre-requisites
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    fonts-dejavu \
-    unixodbc \
-    unixodbc-dev \
-    r-cran-rodbc \
-    gfortran \
-    gcc && \
-    rm -rf /var/lib/apt/lists/*
+# # R pre-requisites
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     fonts-dejavu \
+#     unixodbc \
+#     unixodbc-dev \
+#     r-cran-rodbc \
+#     gfortran \
+#     gcc && \
+#     rm -rf /var/lib/apt/lists/*
 
 # Fix for devtools https://github.com/conda-forge/r-devtools-feedstock/issues/4
 RUN ln -s /bin/tar /bin/gtar
@@ -371,11 +377,14 @@ RUN conda install --quiet --yes \
 
 # JVM
 RUN curl -s "https://get.sdkman.io" | bash
+ADD sdkman.config $HOME/.sdkman/etc/config
 RUN /bin/bash -c "source \"$HOME/.sdkman/bin/sdkman-init.sh\" &&\
     sdk i java 12.0.2-zulu &&\
     sdk i gradle &&\
     sdk i maven &&\
-    sdk i scala ${SCALA_VERSION} &&\
+    sdk i scala ${SCALA_11_VERSION} &&\
+    sdk i scala ${SCALA_13_VERSION} &&\
+    sdk i scala ${SCALA_12_VERSION} &&\
     sdk i sbt &&\
     sdk i kotlin &&\
     sdk i kscript &&\
@@ -392,12 +401,36 @@ RUN /bin/bash -c "source \"$HOME/.sdkman/bin/sdkman-init.sh\" &&\
     chmod +x $HOME/bin/coursier &&\
     $HOME/bin/coursier bootstrap \
     -r jitpack \
-    -i user -I user:sh.almond:scala-kernel-api_$SCALA_VERSION:$ALMOND_VERSION \
-    sh.almond:scala-kernel_$SCALA_VERSION:$ALMOND_VERSION \
+    -i user -I user:sh.almond:scala-kernel-api_$SCALA_11_VERSION:$ALMOND_VERSION \
+    sh.almond:scala-kernel_$SCALA_11_VERSION:$ALMOND_VERSION \
     --sources --default=true \
     -o almond &&\
-    ./almond --install" 
-    # rm -f almond
+    ./almond --install --install --id scala211 --display-name \"Scala (2.11)\" &&\
+    rm -f almond"
+
+RUN /bin/bash -c "source \"$HOME/.sdkman/bin/sdkman-init.sh\" &&\
+    curl -Lo $HOME/bin/coursier https://git.io/coursier-cli &&\
+    chmod +x $HOME/bin/coursier &&\
+    $HOME/bin/coursier bootstrap \
+    -r jitpack \
+    -i user -I user:sh.almond:scala-kernel-api_$SCALA_12_VERSION:$ALMOND_VERSION \
+    sh.almond:scala-kernel_$SCALA_12_VERSION:$ALMOND_VERSION \
+    --sources --default=true \
+    -o almond &&\
+    ./almond --install --install --id scala212 --display-name \"Scala (2.12)\" &&\
+    rm -f almond"
+
+RUN /bin/bash -c "source \"$HOME/.sdkman/bin/sdkman-init.sh\" &&\
+    curl -Lo $HOME/bin/coursier https://git.io/coursier-cli &&\
+    chmod +x $HOME/bin/coursier &&\
+    $HOME/bin/coursier bootstrap \
+    -r jitpack \
+    -i user -I user:sh.almond:scala-kernel-api_$SCALA_13_VERSION:$ALMOND_VERSION \
+    sh.almond:scala-kernel_$SCALA_13_VERSION:$ALMOND_VERSION \
+    --sources --default=true \
+    -o almond &&\
+    ./almond --install --install --id scala213 --display-name \"Scala (2.13)\" &&\
+    rm -f almond"
 
 # USER $NB_UID
 # RUN ipython console --kernel scala211
@@ -405,11 +438,6 @@ RUN /bin/bash -c "source \"$HOME/.sdkman/bin/sdkman-init.sh\" &&\
 
 # RUBY
 USER root
-# RUN apt-get install -y libssl-dev libreadline-dev zlib1g-dev \
-#     libffi-dev make \
-#     git libzmq3-dev autoconf pkg-config libczmq-dev libczmq4
-# RUN apt-get install -y libtool libffi-dev make libzmq3-dev libczmq-dev libssl-dev libreadline-dev zlib1g-dev
-# RUN apt-get install -y libtool
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -417,6 +445,7 @@ RUN apt-get update && \
     # gcc-8 clang-7
 
 USER $NB_UID
+
 RUN git clone https://github.com/rbenv/rbenv.git $HOME/.rbenv &&\
     echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc &&\
     echo 'eval "$(rbenv init -)"' >> ~/.bashrc &&\
@@ -431,6 +460,10 @@ RUN eval "$(rbenv init -)" &&\
 
 # RUN gem install pry pry-doc awesome_print gnuplot rubyvis nyaplot cztop rbczmq &&\
 #     yard config --gem-install-yri
+
+# Clojure
+RUN conda install -y -c simplect clojupyter
+RUN conda install -y -c conda-forge ipywidgets beakerx
 
 # ===================== clean
 

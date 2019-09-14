@@ -7,7 +7,9 @@ docker image for jupyter lab(languages)
 https://www.44bits.io/ko/post/understanding-jupyter-multiple-kernel-using-python2-and-python3-kernel
 https://github.com/jupyter/docker-stacks
 
-* java
+* jvm(groovy, scala, kotlin, clojure)
+    <http://beakerx.com/>
+    <https://github.com/clojupyter/clojupyter>
 * scala
     <https://get-coursier.io/>
     <https://github.com/almond-sh/almond>
