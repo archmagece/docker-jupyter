@@ -25,6 +25,9 @@ RUN sed -i 's@http://archive.ubuntu.com/@http://mirror.kakao.com/@g' /etc/apt/so
     ffmpeg gfortran gcc unixodbc unixodbc-dev r-cran-rodbc &&\
     rm -rf /var/lib/apt/lists/*
 
+USER $NB_UID
+RUN conda update -n base conda
+
 # ======================= start ===========================
 
 # ---------- SciPy
